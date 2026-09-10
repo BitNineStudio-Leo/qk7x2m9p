@@ -359,6 +359,7 @@
     <div class="progress-row">
       <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
       <span class="progress-label" id="progressLabel">0 / 0</span>
+      <button id="syncBtn" style="border:1px solid var(--line);background:var(--paper-raised);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;color:var(--ink-soft);">↻ Sincronizza</button>
     </div>
   </header>
 
@@ -503,29 +504,57 @@
     setTimeout(() => { if (statusEl.textContent === msg) statusEl.textContent = ''; }, 1800);
   }
 
+  const JSONBIN_ID = '6aa27ef0ac6210605abc0ef1';
+  const JSONBIN_KEY = '$2a$10$OQjuO6VG8om6i9vq1P80lu/MqW2RWpZAVAZYCK99uq9TDD7ULzDti';
+  const JSONBIN_URL = 'https://api.jsonbin.io/v3/b/' + JSONBIN_ID;
+
+  let isEditing = false;
+
   async function save() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      const res = await fetch(JSONBIN_URL, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Master-Key': JSONBIN_KEY,
+          'X-Bin-Versioning': 'false'
+        },
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) showStatus('Errore nel salvataggio condiviso');
     } catch (e) {
       console.error('Storage error', e);
-      showStatus('Errore nel salvataggio (memoria del browser piena o non disponibile)');
+      showStatus('Errore nel salvataggio condiviso (controlla la connessione)');
     }
   }
 
-  async function load() {
+  async function load(isBackgroundSync) {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        data = JSON.parse(raw);
-        mergeNewDefaultCategories();
-      } else {
+      const res = await fetch(JSONBIN_URL + '/latest', {
+        headers: { 'X-Master-Key': JSONBIN_KEY }
+      });
+      const json = await res.json();
+      const remote = json.record;
+      if (Array.isArray(remote)) {
+        data = remote;
+      } else if (!isBackgroundSync) {
         data = JSON.parse(JSON.stringify(defaultData));
+        mergeNewDefaultCategories();
+        await save();
+      } else {
+        return;
       }
+      if (!isBackgroundSync) mergeNewDefaultCategories();
     } catch (e) {
+      if (isBackgroundSync) return;
       data = JSON.parse(JSON.stringify(defaultData));
     }
     assignIds(data);
-    render();
+    if (!isEditing) render();
+  }
+
+  function startPolling() {
+    setInterval(() => { if (!isEditing) load(true); }, 15000);
   }
 
   function mergeNewDefaultCategories() {
@@ -606,6 +635,8 @@
         save();
         render();
       }
+      input.addEventListener('focus', () => { isEditing = true; });
+      input.addEventListener('blur', () => { isEditing = false; });
       btn.addEventListener('click', submitNewItem);
       input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submitNewItem(); });
 
@@ -645,7 +676,9 @@
     textSpan.className = 'item-text';
     textSpan.contentEditable = 'true';
     textSpan.textContent = item.text;
+    textSpan.addEventListener('focus', () => { isEditing = true; });
     textSpan.addEventListener('blur', () => {
+      isEditing = false;
       const v = textSpan.textContent.trim();
       if (v && v !== item.text) { item.text = v; save(); }
       else { textSpan.textContent = item.text; }
@@ -718,7 +751,9 @@
     textarea.focus();
     if (focusEmpty) textarea.select();
 
+    textarea.addEventListener('focus', () => { isEditing = true; });
     textarea.addEventListener('blur', () => {
+      isEditing = false;
       item.note = textarea.value.trim();
       save();
       render();
@@ -744,7 +779,12 @@
     if (e.key === 'Enter') document.getElementById('addCategoryBtn').click();
   });
 
-  load();
+  load().then(startPolling);
+
+  document.getElementById('syncBtn').addEventListener('click', () => {
+    showStatus('Sincronizzazione...');
+    load(false);
+  });
 })();
 </script>
 </body>
