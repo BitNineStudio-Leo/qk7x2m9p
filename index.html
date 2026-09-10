@@ -388,6 +388,7 @@
     { name: '🚗 Uscite e sicurezza', items: [
       { text: "Seggiolino auto Gruppo 0+/ovetto (Cybex Cloud Z) — manca la base/attacchi isofix, trio già presente", priority: 'essenziale', done: false, note: 'Ovetto: Cybex Cloud Z — verificare base isofix compatibile (Cybex Base Z)' },
       { text: 'Passeggino/carrozzina (trio)', priority: 'essenziale', done: true, note: 'Bugaboo Cameleon 3' },
+      { text: 'Dispositivo anti-abbandono', priority: 'essenziale', done: false, note: 'Obbligatorio per legge sotto i 4 anni (L. 117/2018) — meglio se integrato nel seggiolino/base isofix' },
       { text: 'Marsupio o fascia porta-bebè', priority: 'utile', done: false, note: 'Promessa da un\'amica' },
       { text: 'Zainetto porta-pannolini con fasciatoio pieghevole', priority: 'utile', done: false, note: '' },
       { text: 'Parasole per finestrino auto', priority: 'comodo', done: false, note: '' },
@@ -494,6 +495,7 @@
   ];
 
   let data = null;
+  let mergedDefaultNames = new Set();
   let collapsedState = {};
   let idCounter = 0;
 
@@ -521,6 +523,7 @@
 
   async function save() {
     try {
+      const payload = { categories: data, mergedDefaults: Array.from(mergedDefaultNames) };
       const res = await fetch(JSONBIN_URL, {
         method: 'PUT',
         headers: {
@@ -528,7 +531,7 @@
           'X-Master-Key': JSONBIN_KEY,
           'X-Bin-Versioning': 'false'
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(payload)
       });
       if (!res.ok) showStatus('Errore nel salvataggio condiviso');
     } catch (e) {
@@ -544,19 +547,32 @@
       });
       const json = await res.json();
       const remote = json.record;
-      if (Array.isArray(remote)) {
+      if (remote && Array.isArray(remote.categories)) {
+        data = remote.categories;
+        mergedDefaultNames = new Set(remote.mergedDefaults || []);
+        if (!remote.mergedDefaults) {
+          // migrazione da formato precedente: segna come "già viste" tutte le categorie
+          // di default già presenti, per evitare di farle riapparire in futuro
+          data.forEach(c => mergedDefaultNames.add(c.name));
+        }
+      } else if (Array.isArray(remote)) {
+        // formato precedente (array semplice, senza tracking)
         data = remote;
+        data.forEach(c => mergedDefaultNames.add(c.name));
       } else if (!isBackgroundSync) {
         data = JSON.parse(JSON.stringify(defaultData));
-        mergeNewDefaultCategories();
-        await save();
+        mergedDefaultNames = new Set();
       } else {
         return;
       }
-      if (!isBackgroundSync) mergeNewDefaultCategories();
+      if (!isBackgroundSync) {
+        const changed = mergeNewDefaultCategories();
+        if (changed) await save();
+      }
     } catch (e) {
       if (isBackgroundSync) return;
       data = JSON.parse(JSON.stringify(defaultData));
+      mergedDefaultNames = new Set(data.map(c => c.name));
     }
     assignIds(data);
     if (!isEditing) render();
@@ -570,12 +586,16 @@
     const existingNames = new Set(data.map(c => c.name));
     let added = false;
     defaultData.forEach(defCat => {
-      if (!existingNames.has(defCat.name)) {
-        data.push(JSON.parse(JSON.stringify(defCat)));
-        added = true;
+      if (existingNames.has(defCat.name)) {
+        if (!mergedDefaultNames.has(defCat.name)) { mergedDefaultNames.add(defCat.name); added = true; }
+        return;
       }
+      if (mergedDefaultNames.has(defCat.name)) return; // già rinominata o eliminata dall'utente in passato
+      data.push(JSON.parse(JSON.stringify(defCat)));
+      mergedDefaultNames.add(defCat.name);
+      added = true;
     });
-    if (added) save();
+    return added;
   }
 
   function priorityLabel(p) {
