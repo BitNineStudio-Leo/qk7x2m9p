@@ -740,6 +740,7 @@
   }
 
   function openNoteEditor(noteWrap, item, mainEl, focusEmpty) {
+    isEditing = true;
     noteWrap.innerHTML = '';
     const box = document.createElement('div');
     box.className = 'note-box';
