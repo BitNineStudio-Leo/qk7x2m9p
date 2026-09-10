@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lista Nascita</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Inter:wght@400;500;600&display=swap');
+
+  :root {
+    --paper: #FAF7F0;
+    --paper-raised: #FFFFFF;
+    --ink: #2A2823;
+    --ink-soft: #6B675D;
+    --line: #E2DBC9;
+    --sage: #4F6D5A;
+    --sage-dim: #E7EEE8;
+    --gold: #B58A3D;
+    --done-bg: #F0EFE6;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    padding: 32px 18px 80px;
+  }
+
+  .wrap { max-width: 640px; margin: 0 auto; }
+
+  header {
+    margin-bottom: 28px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 20px;
+  }
+
+  h1 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-weight: 600;
+    font-size: 30px;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+
+  .subtitle {
+    color: var(--ink-soft);
+    font-size: 14px;
+    margin: 0;
+  }
+
+  .progress-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .progress-track {
+    flex: 1;
+    height: 6px;
+    background: var(--line);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--sage);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+
+  .progress-label {
+    font-size: 13px;
+    color: var(--ink-soft);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .category {
+    margin-bottom: 22px;
+  }
+
+  .category-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    padding: 4px 0;
+  }
+
+  .category-head .caret {
+    color: var(--ink-soft);
+    font-size: 12px;
+    transition: transform 0.15s ease;
+    display: inline-block;
+  }
+
+  .category.collapsed .caret { transform: rotate(-90deg); }
+
+  .category-name {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .category-count {
+    color: var(--ink-soft);
+    font-size: 13px;
+  }
+
+  .items {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .category.collapsed .items { display: none; }
+
+  .item {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+
+  .item.done {
+    background: var(--done-bg);
+    border-color: var(--line);
+  }
+
+  .item-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .checkbox {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border: 1.5px solid var(--ink-soft);
+    border-radius: 5px;
+    margin-top: 1px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--paper-raised);
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .item.done .checkbox {
+    background: var(--sage);
+    border-color: var(--sage);
+    color: white;
+  }
+
+  .checkbox svg { width: 12px; height: 12px; display: none; }
+  .item.done .checkbox svg { display: block; }
+
+  .item-main { flex: 1; min-width: 0; }
+
+  .item-text-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .item-text {
+    font-size: 15px;
+    cursor: text;
+  }
+
+  .item.done .item-text {
+    text-decoration: line-through;
+    color: var(--ink-soft);
+  }
+
+  .priority {
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 20px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .priority-select {
+    font-size: 11px;
+    padding: 1px 20px 1px 7px;
+    border-radius: 20px;
+    font-weight: 500;
+    white-space: nowrap;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    appearance: none;
+    -webkit-appearance: none;
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    background-size: 9px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B675D' stroke-width='2.5' stroke-linecap='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+  }
+
+  .priority-select.essenziale { background-color: #F3E4DD; color: #9C5A3C; }
+  .priority-select.utile { background-color: #F6EED9; color: var(--gold); }
+  .priority-select.comodo { background-color: var(--sage-dim); color: var(--sage); }
+
+  .note-toggle {
+    background: none;
+    border: none;
+    color: var(--ink-soft);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .note-box {
+    margin-top: 8px;
+  }
+
+  .note-box textarea {
+    width: 100%;
+    min-height: 44px;
+    resize: vertical;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 7px 9px;
+    font-family: inherit;
+    font-size: 13.5px;
+    color: var(--ink);
+    background: var(--paper);
+  }
+
+  .note-preview {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    font-style: italic;
+    cursor: text;
+  }
+
+  .delete-btn {
+    background: none;
+    border: none;
+    color: var(--ink-soft);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 2px 4px;
+    flex-shrink: 0;
+    opacity: 0.5;
+  }
+  .delete-btn:hover { opacity: 1; color: #9C5A3C; }
+
+  .add-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .add-row input[type="text"] {
+    flex: 1;
+    border: 1px dashed var(--line);
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-family: inherit;
+    font-size: 14px;
+    background: transparent;
+    color: var(--ink);
+  }
+  .add-row input[type="text"]:focus {
+    outline: none;
+    border-color: var(--sage);
+    border-style: solid;
+  }
+
+  .add-row select {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 9px 8px;
+    font-family: inherit;
+    font-size: 13px;
+    background: var(--paper-raised);
+    color: var(--ink);
+  }
+
+  .add-row button {
+    border: none;
+    background: var(--sage);
+    color: white;
+    border-radius: 8px;
+    padding: 9px 16px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .add-row button:hover { background: #435E4D; }
+
+  .new-category-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+  .new-category-row input {
+    flex: 1;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-family: inherit;
+    font-size: 14px;
+    background: var(--paper-raised);
+  }
+  .new-category-row button {
+    border: 1px solid var(--sage);
+    background: transparent;
+    color: var(--sage);
+    border-radius: 8px;
+    padding: 9px 16px;
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .status-msg {
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-top: 28px;
+    min-height: 16px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--ink-soft);
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Lista Nascita</h1>
+    <div class="progress-row">
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <span class="progress-label" id="progressLabel">0 / 0</span>
+    </div>
+  </header>
+
+  <div id="categories"></div>
+
+  <div class="new-category-row">
+    <input type="text" id="newCategoryName" placeholder="Nome nuova categoria (es. Giochi)">
+    <button id="addCategoryBtn">+ Categoria</button>
+  </div>
+
+  <div class="status-msg" id="statusMsg"></div>
+</div>
+
+<script>
+(function() {
+  const STORAGE_KEY = 'lista-nascita-data-v1';
+
+  const defaultData = [
+    { name: '🚗 Uscite e sicurezza', items: [
+      { text: "Seggiolino auto Gruppo 0+/ovetto (Cybex Cloud Z) — manca la base/attacchi isofix, trio già presente", priority: 'essenziale', done: false, note: 'Ovetto: Cybex Cloud Z — verificare base isofix compatibile (Cybex Base Z)' },
+      { text: 'Passeggino/carrozzina (trio)', priority: 'essenziale', done: true, note: 'Bugaboo Cameleon 3' },
+      { text: 'Marsupio o fascia porta-bebè', priority: 'utile', done: false, note: 'Promessa da un\'amica' },
+      { text: 'Zainetto porta-pannolini con fasciatoio pieghevole', priority: 'utile', done: false, note: '' },
+      { text: 'Parasole per finestrino auto', priority: 'comodo', done: false, note: '' },
+      { text: 'Copripioggia/copertina passeggino', priority: 'comodo', done: false, note: '' }
+    ]},
+    { name: '🛏️ Nanna', items: [
+      { text: 'Culla o lettino con materasso rigido certificato', priority: 'essenziale', done: true, note: 'Già 2 lettini in casa' },
+      { text: 'Next to me', priority: 'essenziale', done: true, note: '' },
+      { text: 'Lenzuolini e paracolpi traspiranti (o sacco nanna)', priority: 'essenziale', done: false, note: 'Verificare misure lettini e next to me già in casa' },
+      { text: 'Sacco nanna (2-3 stagioni diverse)', priority: 'utile', done: false, note: '' },
+      { text: 'Termometro ambientale per la cameretta', priority: 'utile', done: false, note: '' },
+      { text: 'Baby monitor audio/video', priority: 'comodo', done: false, note: '' },
+      { text: 'Ciuccio + catenella', priority: 'comodo', done: false, note: '' }
+    ]},
+    { name: '🍼 Pappa', items: [
+      { text: 'Set biberon (2-3 per iniziare)', priority: 'essenziale', done: false, note: '' },
+      { text: 'Sterilizzatore (vapore/microonde) o pentola dedicata', priority: 'essenziale', done: false, note: '' },
+      { text: 'Scaldabiberon', priority: 'utile', done: false, note: '' },
+      { text: 'Cuscino allattamento', priority: 'utile', done: false, note: '' },
+      { text: 'Coppette assorbilatte + crema capezzoli', priority: 'utile', done: false, note: '' },
+      { text: 'Tiralatte', priority: 'comodo', done: false, note: '' },
+      { text: 'Scalda pappa da viaggio', priority: 'comodo', done: false, note: '' }
+    ]},
+    { name: '🧷 Cambio', items: [
+      { text: 'Fasciatoio', priority: 'essenziale', done: true, note: '' },
+      { text: 'Pannolini taglia 1 (newborn)', priority: 'essenziale', done: false, note: 'Non esagerare con le scorte, crescono in fretta' },
+      { text: 'Salviette umidificate', priority: 'essenziale', done: false, note: '' },
+      { text: 'Crema anti-arrossamento', priority: 'utile', done: false, note: '' },
+      { text: 'Ciotola/bagnetto per il cambio + garze', priority: 'utile', done: false, note: '' },
+      { text: 'Scalda salviette', priority: 'comodo', done: false, note: '' }
+    ]},
+    { name: '🛁 Bagnetto', items: [
+      { text: 'Vaschetta bagnetto (con riduttore o supporto)', priority: 'essenziale', done: false, note: '' },
+      { text: 'Termometro da bagno', priority: 'utile', done: false, note: '' },
+      { text: 'Set spugnette, sapone neutro, olio corpo', priority: 'utile', done: false, note: '' },
+      { text: 'Accappatoio con cappuccio', priority: 'comodo', done: false, note: '' }
+    ]},
+    { name: '👕 Abbigliamento (0-3 mesi)', items: [
+      { text: 'Body manica corta/lunga (6-8 pezzi)', priority: 'essenziale', done: true, note: '' },
+      { text: 'Tutine/pigiamini interi (6-8 pezzi)', priority: 'essenziale', done: true, note: '' },
+      { text: 'Copertina/copertine per uscite', priority: 'essenziale', done: true, note: '' },
+      { text: 'Giacchino o tutina da esterno per la stagione', priority: 'utile', done: false, note: '' },
+      { text: 'Calzine, guanti anti-graffio, cappellino', priority: 'utile', done: false, note: '' },
+      { text: 'Bavaglini in cotone', priority: 'comodo', done: false, note: '' }
+    ]},
+    { name: '💊 Prima farmacia e igiene', items: [
+      { text: 'Termometro (auricolare o digitale)', priority: 'essenziale', done: false, note: '' },
+      { text: 'Aspiratore nasale', priority: 'essenziale', done: false, note: '' },
+      { text: 'Forbicine/limetta unghie neonato', priority: 'utile', done: false, note: '' },
+      { text: 'Spazzola morbida per capelli', priority: 'utile', done: false, note: '' },
+      { text: 'Soluzione fisiologica, garze sterili', priority: 'comodo', done: false, note: '' }
+    ]},
+    { name: '🤱 Per la mamma (post-parto)', items: [
+      { text: 'Reggiseni allattamento', priority: 'utile', done: false, note: '' },
+      { text: 'Assorbenti post-parto', priority: 'utile', done: false, note: '' },
+      { text: 'Cuscino allattamento', priority: 'comodo', done: false, note: '' }
+    ]},
+    { name: '🪑 Cameretta e crescita', items: [
+      { text: 'Sedia evolutiva (tipo Tripp Trapp)', priority: 'comodo', done: false, note: '' },
+      { text: 'Libreria montessoriana', priority: 'comodo', done: false, note: '' },
+      { text: 'Tappetone/i (2 previsti)', priority: 'comodo', done: false, note: '' }
+    ]},
+    { name: '🧳 Valigia ospedale — per lei', items: [
+      { text: '2/3 camicie da notte o pigiami', priority: 'essenziale', done: false, note: 'Meglio aperte davanti, comode per l\'allattamento' },
+      { text: 'Vestaglia per gli spostamenti', priority: 'essenziale', done: false, note: '' },
+      { text: 'Maglietta di cotone comoda per il travaglio', priority: 'utile', done: false, note: 'Facoltativa' },
+      { text: 'Pantofole e ciabatte da doccia', priority: 'essenziale', done: false, note: 'Preferibilmente di gomma' },
+      { text: 'Asciugamani', priority: 'essenziale', done: false, note: '' },
+      { text: 'Assorbenti per flusso abbondante e mutandine', priority: 'essenziale', done: false, note: 'Anche monouso' },
+      { text: 'Abiti per l\'uscita dall\'ospedale', priority: 'essenziale', done: false, note: '' },
+      { text: 'Monete per i distributori automatici', priority: 'comodo', done: false, note: 'Per il ristoro notturno' },
+      { text: 'Necessario per l\'igiene personale', priority: 'essenziale', done: false, note: 'Spazzolino, dentifricio, detergente intimo, spazzola, shampoo' },
+      { text: 'Reggiseno morbido (facoltativo)', priority: 'comodo', done: false, note: '' },
+      { text: 'Tazza, bicchiere, posate per i pasti', priority: 'utile', done: false, note: '' }
+    ]},
+    { name: '🧳 Valigia ospedale — per il bambino (post-parto)', items: [
+      { text: '3 cambi (tutine intere o completo spezzato)', priority: 'essenziale', done: false, note: '' },
+      { text: '3 body intimi', priority: 'essenziale', done: false, note: 'Manica corta o lunga a seconda della stagione' },
+      { text: '3 paia di calzini di cotone', priority: 'essenziale', done: false, note: 'Anche d\'estate' },
+      { text: '1 cuffietta', priority: 'essenziale', done: false, note: '' },
+      { text: 'Copertina in lana o cotone', priority: 'essenziale', done: false, note: 'A seconda della stagione' },
+      { text: 'Seggiolino auto per il rientro a casa', priority: 'essenziale', done: false, note: 'Ovetto Cybex Cloud Z — ricordarsi anche la base isofix' },
+      { text: 'Necessario per cura e igiene del neonato', priority: 'utile', done: false, note: 'A discrezione' }
+    ]},
+    { name: '🎒 Sacchetto sala parto', items: [
+      { text: 'Acqua e cibi energetici', priority: 'essenziale', done: false, note: 'Cioccolata, frutta secca, caramelle, succhi di frutta' },
+      { text: 'Camicia da notte e vestaglia', priority: 'essenziale', done: false, note: '' },
+      { text: 'Mutandina (anche monouso)', priority: 'essenziale', done: false, note: '' },
+      { text: 'Calzini di cotone', priority: 'essenziale', done: false, note: '' },
+      { text: 'Ciabatte per la doccia', priority: 'essenziale', done: false, note: '' },
+      { text: 'Musica preferita (playlist o chiavetta USB)', priority: 'comodo', done: false, note: '' },
+      { text: 'Per il bambino: 1 tutina, 1 body, 1 paio di calzini, 1 cuffietta', priority: 'essenziale', done: false, note: 'Da tenere pronti a parte per il momento della nascita' },
+      { text: 'Camicino della fortuna', priority: 'comodo', done: false, note: 'Se desiderato' },
+      { text: 'Abbigliamento comodo per chi assiste al parto', priority: 'utile', done: false, note: 'Leggero, per favorire il pelle a pelle' }
+    ]},
+    { name: '📄 Documenti da portare in ospedale', items: [
+      { text: 'Documento d\'identità valido', priority: 'essenziale', done: false, note: '' },
+      { text: 'Tessera sanitaria', priority: 'essenziale', done: false, note: '' },
+      { text: 'Eventuali farmaci personali', priority: 'essenziale', done: false, note: '' },
+      { text: 'Documentazione della gravidanza', priority: 'essenziale', done: false, note: 'Ecografie, esami, referti' }
+    ]}
+  ];
+
+  let data = null;
+  let collapsedState = {};
+  let idCounter = 0;
+
+  function assignIds(cats) {
+    cats.forEach(cat => {
+      if (!cat.id) cat.id = 'cat_' + (idCounter++);
+      cat.items.forEach(it => { if (!it.id) it.id = 'item_' + (idCounter++); });
+    });
+    return cats;
+  }
+
+  const categoriesEl = document.getElementById('categories');
+  const statusEl = document.getElementById('statusMsg');
+
+  function showStatus(msg) {
+    statusEl.textContent = msg;
+    setTimeout(() => { if (statusEl.textContent === msg) statusEl.textContent = ''; }, 1800);
+  }
+
+  async function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.error('Storage error', e);
+      showStatus('Errore nel salvataggio (memoria del browser piena o non disponibile)');
+    }
+  }
+
+  async function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        data = JSON.parse(raw);
+        mergeNewDefaultCategories();
+      } else {
+        data = JSON.parse(JSON.stringify(defaultData));
+      }
+    } catch (e) {
+      data = JSON.parse(JSON.stringify(defaultData));
+    }
+    assignIds(data);
+    render();
+  }
+
+  function mergeNewDefaultCategories() {
+    const existingNames = new Set(data.map(c => c.name));
+    let added = false;
+    defaultData.forEach(defCat => {
+      if (!existingNames.has(defCat.name)) {
+        data.push(JSON.parse(JSON.stringify(defCat)));
+        added = true;
+      }
+    });
+    if (added) save();
+  }
+
+  function priorityLabel(p) {
+    return p === 'essenziale' ? 'Essenziale' : p === 'utile' ? 'Utile' : 'Comodo';
+  }
+
+  function render() {
+    categoriesEl.innerHTML = '';
+
+    let totalItems = 0, totalDone = 0;
+
+    if (data.length === 0) {
+      categoriesEl.innerHTML = '<div class="empty-state">Nessuna categoria. Aggiungine una qui sotto.</div>';
+    }
+
+    data.forEach(cat => {
+      totalItems += cat.items.length;
+      totalDone += cat.items.filter(i => i.done).length;
+
+      const catEl = document.createElement('div');
+      catEl.className = 'category' + (collapsedState[cat.id] ? ' collapsed' : '');
+
+      const doneCount = cat.items.filter(i => i.done).length;
+
+      const head = document.createElement('div');
+      head.className = 'category-head';
+      head.innerHTML = `
+        <span class="caret">▾</span>
+        <span class="category-name">${escapeHtml(cat.name)}</span>
+        <span class="category-count">${doneCount}/${cat.items.length}</span>
+      `;
+      head.addEventListener('click', () => {
+        collapsedState[cat.id] = !collapsedState[cat.id];
+        render();
+      });
+      catEl.appendChild(head);
+
+      const itemsEl = document.createElement('div');
+      itemsEl.className = 'items';
+
+      cat.items.forEach(item => {
+        itemsEl.appendChild(renderItem(cat, item));
+      });
+
+      catEl.appendChild(itemsEl);
+
+      const addRow = document.createElement('div');
+      addRow.className = 'add-row';
+      addRow.innerHTML = `
+        <input type="text" placeholder="Nuova voce..." data-role="new-item-text">
+        <select data-role="new-item-priority">
+          <option value="essenziale">Essenziale</option>
+          <option value="utile" selected>Utile</option>
+          <option value="comodo">Comodo</option>
+        </select>
+        <button data-role="new-item-btn">+ Aggiungi</button>
+      `;
+      const input = addRow.querySelector('[data-role="new-item-text"]');
+      const select = addRow.querySelector('[data-role="new-item-priority"]');
+      const btn = addRow.querySelector('[data-role="new-item-btn"]');
+
+      function submitNewItem() {
+        const text = input.value.trim();
+        if (!text) return;
+        cat.items.push({ id: 'item_' + (idCounter++), text, priority: select.value, done: false, note: '' });
+        save();
+        render();
+      }
+      btn.addEventListener('click', submitNewItem);
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submitNewItem(); });
+
+      catEl.appendChild(addRow);
+      categoriesEl.appendChild(catEl);
+    });
+
+    const pct = totalItems ? Math.round((totalDone / totalItems) * 100) : 0;
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = `${totalDone} / ${totalItems}`;
+  }
+
+  function renderItem(cat, item) {
+    const el = document.createElement('div');
+    el.className = 'item' + (item.done ? ' done' : '');
+
+    const row = document.createElement('div');
+    row.className = 'item-row';
+
+    const checkbox = document.createElement('div');
+    checkbox.className = 'checkbox';
+    checkbox.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+    checkbox.addEventListener('click', () => {
+      item.done = !item.done;
+      save();
+      render();
+    });
+    row.appendChild(checkbox);
+
+    const main = document.createElement('div');
+    main.className = 'item-main';
+
+    const textRow = document.createElement('div');
+    textRow.className = 'item-text-row';
+
+    const textSpan = document.createElement('span');
+    textSpan.className = 'item-text';
+    textSpan.contentEditable = 'true';
+    textSpan.textContent = item.text;
+    textSpan.addEventListener('blur', () => {
+      const v = textSpan.textContent.trim();
+      if (v && v !== item.text) { item.text = v; save(); }
+      else { textSpan.textContent = item.text; }
+    });
+    textSpan.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); textSpan.blur(); }
+    });
+    textRow.appendChild(textSpan);
+
+    const badge = document.createElement('select');
+    badge.className = 'priority-select ' + item.priority;
+    ['essenziale', 'utile', 'comodo'].forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p;
+      opt.textContent = priorityLabel(p);
+      if (p === item.priority) opt.selected = true;
+      badge.appendChild(opt);
+    });
+    badge.addEventListener('change', () => {
+      item.priority = badge.value;
+      save();
+      render();
+    });
+    textRow.appendChild(badge);
+
+    main.appendChild(textRow);
+
+    const noteWrap = document.createElement('div');
+    if (item.note) {
+      const preview = document.createElement('div');
+      preview.className = 'note-preview';
+      preview.textContent = '📝 ' + item.note;
+      preview.addEventListener('click', () => openNoteEditor(noteWrap, item, main));
+      noteWrap.appendChild(preview);
+    } else {
+      const toggle = document.createElement('button');
+      toggle.className = 'note-toggle';
+      toggle.textContent = '+ Aggiungi nota';
+      toggle.addEventListener('click', () => openNoteEditor(noteWrap, item, main, true));
+      noteWrap.appendChild(toggle);
+    }
+    main.appendChild(noteWrap);
+
+    row.appendChild(main);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'delete-btn';
+    delBtn.textContent = '✕';
+    delBtn.title = 'Elimina voce';
+    delBtn.addEventListener('click', () => {
+      cat.items = cat.items.filter(i => i.id !== item.id);
+      save();
+      render();
+    });
+    row.appendChild(delBtn);
+
+    el.appendChild(row);
+    return el;
+  }
+
+  function openNoteEditor(noteWrap, item, mainEl, focusEmpty) {
+    noteWrap.innerHTML = '';
+    const box = document.createElement('div');
+    box.className = 'note-box';
+    const textarea = document.createElement('textarea');
+    textarea.value = item.note || '';
+    textarea.placeholder = 'Scrivi una nota (marca, taglia, chi la porta...)';
+    box.appendChild(textarea);
+    noteWrap.appendChild(box);
+    textarea.focus();
+    if (focusEmpty) textarea.select();
+
+    textarea.addEventListener('blur', () => {
+      item.note = textarea.value.trim();
+      save();
+      render();
+    });
+  }
+
+  function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  document.getElementById('addCategoryBtn').addEventListener('click', () => {
+    const input = document.getElementById('newCategoryName');
+    const name = input.value.trim();
+    if (!name) return;
+    data.push({ id: 'cat_' + (idCounter++), name, items: [] });
+    input.value = '';
+    save();
+    render();
+  });
+  document.getElementById('newCategoryName').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('addCategoryBtn').click();
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>
