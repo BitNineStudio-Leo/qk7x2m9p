@@ -297,12 +297,14 @@
 
   .add-row {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     margin-top: 10px;
   }
 
   .add-row input[type="text"] {
-    flex: 1;
+    flex: 1 1 140px;
+    min-width: 0;
     border: 1px dashed var(--line);
     border-radius: 8px;
     padding: 9px 12px;
@@ -318,6 +320,8 @@
   }
 
   .add-row select {
+    flex: 0 1 auto;
+    min-width: 0;
     border: 1px solid var(--line);
     border-radius: 8px;
     padding: 9px 8px;
@@ -328,6 +332,7 @@
   }
 
   .add-row button {
+    flex: 0 0 auto;
     border: none;
     background: var(--sage);
     color: white;
@@ -343,13 +348,15 @@
 
   .new-category-row {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     margin-top: 30px;
     padding-top: 20px;
     border-top: 1px solid var(--line);
   }
   .new-category-row input {
-    flex: 1;
+    flex: 1 1 140px;
+    min-width: 0;
     border: 1px solid var(--line);
     border-radius: 8px;
     padding: 9px 12px;
@@ -358,6 +365,7 @@
     background: var(--paper-raised);
   }
   .new-category-row button {
+    flex: 0 0 auto;
     border: 1px solid var(--sage);
     background: transparent;
     color: var(--sage);
