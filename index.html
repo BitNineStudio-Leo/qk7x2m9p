@@ -86,6 +86,31 @@
     margin-bottom: 22px;
   }
 
+  .drag-handle {
+    cursor: grab;
+    color: var(--ink-soft);
+    opacity: 0.4;
+    flex-shrink: 0;
+    font-size: 14px;
+    line-height: 1;
+    padding: 2px;
+    user-select: none;
+  }
+  .drag-handle:hover { opacity: 0.9; }
+  .drag-handle:active { cursor: grabbing; }
+
+  .item.dragging, .category.dragging-cat {
+    opacity: 0.4;
+  }
+
+  .category-head { position: relative; }
+  .category.drag-over-cat > .category-head {
+    box-shadow: 0 -2px 0 var(--sage);
+  }
+  .item.drag-over-item {
+    box-shadow: 0 -2px 0 var(--sage);
+  }
+
   .category-head {
     display: flex;
     align-items: baseline;
@@ -617,11 +642,51 @@
 
       const catEl = document.createElement('div');
       catEl.className = 'category' + (collapsedState[cat.id] ? ' collapsed' : '');
+      catEl.draggable = false;
+
+      catEl.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/cat-id', cat.id);
+        e.dataTransfer.effectAllowed = 'move';
+        catEl.classList.add('dragging-cat');
+      });
+      catEl.addEventListener('dragend', () => {
+        catEl.draggable = false;
+        catEl.classList.remove('dragging-cat');
+        document.querySelectorAll('.drag-over-cat').forEach(el => el.classList.remove('drag-over-cat'));
+      });
+      catEl.addEventListener('dragover', (e) => {
+        if (e.dataTransfer.types.includes('text/cat-id')) {
+          e.preventDefault();
+          catEl.classList.add('drag-over-cat');
+        }
+      });
+      catEl.addEventListener('dragleave', () => catEl.classList.remove('drag-over-cat'));
+      catEl.addEventListener('drop', (e) => {
+        const draggedCatId = e.dataTransfer.getData('text/cat-id');
+        catEl.classList.remove('drag-over-cat');
+        if (!draggedCatId || draggedCatId === cat.id) return;
+        e.preventDefault();
+        const fromIdx = data.findIndex(c => c.id === draggedCatId);
+        const toIdx = data.findIndex(c => c.id === cat.id);
+        if (fromIdx === -1 || toIdx === -1) return;
+        const [moved] = data.splice(fromIdx, 1);
+        data.splice(toIdx, 0, moved);
+        save();
+        render();
+      });
 
       const doneCount = cat.items.filter(i => i.done).length;
 
       const head = document.createElement('div');
       head.className = 'category-head';
+
+      const catDragHandle = document.createElement('span');
+      catDragHandle.className = 'drag-handle';
+      catDragHandle.textContent = '⠿';
+      catDragHandle.title = 'Trascina per riordinare';
+      catDragHandle.addEventListener('mousedown', () => { catEl.draggable = true; });
+      catDragHandle.addEventListener('touchstart', () => { catEl.draggable = true; }, { passive: true });
+      catDragHandle.addEventListener('mouseup', () => { catEl.draggable = false; });
 
       const caretSpan = document.createElement('span');
       caretSpan.className = 'caret';
@@ -667,6 +732,7 @@
         render();
       });
 
+      head.appendChild(catDragHandle);
       head.appendChild(caretSpan);
       head.appendChild(nameSpan);
       head.appendChild(countSpan);
@@ -721,9 +787,55 @@
   function renderItem(cat, item) {
     const el = document.createElement('div');
     el.className = 'item' + (item.done ? ' done' : '');
+    el.draggable = false;
+
+    el.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/item-id', item.id);
+      e.dataTransfer.setData('text/item-cat-id', cat.id);
+      e.dataTransfer.effectAllowed = 'move';
+      e.stopPropagation();
+      el.classList.add('dragging');
+    });
+    el.addEventListener('dragend', () => {
+      el.draggable = false;
+      el.classList.remove('dragging');
+      document.querySelectorAll('.drag-over-item').forEach(x => x.classList.remove('drag-over-item'));
+    });
+    el.addEventListener('dragover', (e) => {
+      if (e.dataTransfer.types.includes('text/item-id')) {
+        e.preventDefault();
+        e.stopPropagation();
+        el.classList.add('drag-over-item');
+      }
+    });
+    el.addEventListener('dragleave', () => el.classList.remove('drag-over-item'));
+    el.addEventListener('drop', (e) => {
+      const draggedItemId = e.dataTransfer.getData('text/item-id');
+      const draggedCatId = e.dataTransfer.getData('text/item-cat-id');
+      el.classList.remove('drag-over-item');
+      if (!draggedItemId || draggedItemId === item.id || draggedCatId !== cat.id) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const fromIdx = cat.items.findIndex(i => i.id === draggedItemId);
+      const toIdx = cat.items.findIndex(i => i.id === item.id);
+      if (fromIdx === -1 || toIdx === -1) return;
+      const [moved] = cat.items.splice(fromIdx, 1);
+      cat.items.splice(toIdx, 0, moved);
+      save();
+      render();
+    });
 
     const row = document.createElement('div');
     row.className = 'item-row';
+
+    const itemDragHandle = document.createElement('span');
+    itemDragHandle.className = 'drag-handle';
+    itemDragHandle.textContent = '⠿';
+    itemDragHandle.title = 'Trascina per riordinare';
+    itemDragHandle.addEventListener('mousedown', () => { el.draggable = true; });
+    itemDragHandle.addEventListener('touchstart', () => { el.draggable = true; }, { passive: true });
+    itemDragHandle.addEventListener('mouseup', () => { el.draggable = false; });
+    row.appendChild(itemDragHandle);
 
     const checkbox = document.createElement('div');
     checkbox.className = 'checkbox';
