@@ -108,11 +108,13 @@
     font-family: 'Source Serif 4', Georgia, serif;
     font-size: 18px;
     font-weight: 600;
+    cursor: text;
   }
 
   .category-count {
     color: var(--ink-soft);
     font-size: 13px;
+    cursor: pointer;
   }
 
   .items {
@@ -419,8 +421,10 @@
       { text: 'Accappatoio con cappuccio', priority: 'comodo', done: false, note: '' }
     ]},
     { name: '👕 Abbigliamento (0-3 mesi)', items: [
-      { text: 'Body manica corta/lunga (6-8 pezzi)', priority: 'essenziale', done: true, note: '' },
-      { text: 'Tutine/pigiamini interi (6-8 pezzi)', priority: 'essenziale', done: true, note: '' },
+      { text: 'Body manica corta/lunga taglia 0-1 mese (2-3 pezzi)', priority: 'essenziale', done: true, note: '' },
+      { text: 'Body taglia 1-3 mesi (6-8 pezzi)', priority: 'utile', done: false, note: 'Da mettere in lista per i regali: si usa più a lungo, meno rischio di sprecarli' },
+      { text: 'Tutine/pigiamini interi taglia 0-1 mese (2-3 pezzi)', priority: 'essenziale', done: true, note: '' },
+      { text: 'Tutine/pigiamini taglia 1-3 mesi (6-8 pezzi)', priority: 'utile', done: false, note: 'Da mettere in lista per i regali, stesso motivo dei body' },
       { text: 'Copertina/copertine per uscite', priority: 'essenziale', done: true, note: '' },
       { text: 'Giacchino o tutina da esterno per la stagione', priority: 'utile', done: false, note: '' },
       { text: 'Calzine, guanti anti-graffio, cappellino', priority: 'utile', done: false, note: '' },
@@ -433,7 +437,11 @@
       { text: 'Spazzola morbida per capelli', priority: 'utile', done: false, note: '' },
       { text: 'Soluzione fisiologica, garze sterili', priority: 'comodo', done: false, note: '' }
     ]},
- 
+    { name: '🤱 Per la mamma (post-parto)', items: [
+      { text: 'Reggiseni allattamento', priority: 'utile', done: false, note: '' },
+      { text: 'Assorbenti post-parto', priority: 'utile', done: false, note: '' },
+      { text: 'Cuscino allattamento', priority: 'comodo', done: false, note: '' }
+    ]},
     { name: '🪑 Cameretta e crescita', items: [
       { text: 'Sedia evolutiva (tipo Tripp Trapp)', priority: 'comodo', done: false, note: '' },
       { text: 'Libreria montessoriana', priority: 'comodo', done: false, note: '' },
@@ -589,15 +597,55 @@
 
       const head = document.createElement('div');
       head.className = 'category-head';
-      head.innerHTML = `
-        <span class="caret">▾</span>
-        <span class="category-name">${escapeHtml(cat.name)}</span>
-        <span class="category-count">${doneCount}/${cat.items.length}</span>
-      `;
-      head.addEventListener('click', () => {
+
+      const caretSpan = document.createElement('span');
+      caretSpan.className = 'caret';
+      caretSpan.textContent = '▾';
+      caretSpan.addEventListener('click', () => {
         collapsedState[cat.id] = !collapsedState[cat.id];
         render();
       });
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'category-name';
+      nameSpan.contentEditable = 'true';
+      nameSpan.textContent = cat.name;
+      nameSpan.addEventListener('click', (e) => e.stopPropagation());
+      nameSpan.addEventListener('focus', () => { isEditing = true; });
+      nameSpan.addEventListener('blur', () => {
+        isEditing = false;
+        const v = nameSpan.textContent.trim();
+        if (v && v !== cat.name) { cat.name = v; save(); render(); }
+        else { nameSpan.textContent = cat.name; }
+      });
+      nameSpan.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); nameSpan.blur(); }
+      });
+
+      const countSpan = document.createElement('span');
+      countSpan.className = 'category-count';
+      countSpan.textContent = `${doneCount}/${cat.items.length}`;
+      countSpan.addEventListener('click', () => {
+        collapsedState[cat.id] = !collapsedState[cat.id];
+        render();
+      });
+
+      const catDelBtn = document.createElement('button');
+      catDelBtn.className = 'delete-btn';
+      catDelBtn.textContent = '✕';
+      catDelBtn.title = 'Elimina categoria';
+      catDelBtn.style.marginLeft = 'auto';
+      catDelBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        data = data.filter(c => c.id !== cat.id);
+        save();
+        render();
+      });
+
+      head.appendChild(caretSpan);
+      head.appendChild(nameSpan);
+      head.appendChild(countSpan);
+      head.appendChild(catDelBtn);
       catEl.appendChild(head);
 
       const itemsEl = document.createElement('div');
