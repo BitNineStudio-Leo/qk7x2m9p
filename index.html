@@ -252,6 +252,11 @@
     cursor: text;
   }
 
+  .note-preview a {
+    color: var(--sage);
+    font-style: normal;
+  }
+
   .delete-btn {
     background: none;
     border: none;
@@ -754,8 +759,11 @@
     if (item.note) {
       const preview = document.createElement('div');
       preview.className = 'note-preview';
-      preview.textContent = '📝 ' + item.note;
-      preview.addEventListener('click', () => openNoteEditor(noteWrap, item, main));
+      preview.innerHTML = '📝 ' + linkify(item.note);
+      preview.addEventListener('click', (e) => {
+        if (e.target.tagName === 'A') return;
+        openNoteEditor(noteWrap, item, main);
+      });
       noteWrap.appendChild(preview);
     } else {
       const toggle = document.createElement('button');
@@ -809,6 +817,18 @@
     const d = document.createElement('div');
     d.textContent = str;
     return d.innerHTML;
+  }
+
+  function linkify(str) {
+    const escaped = escapeHtml(str);
+    const urlPattern = /(https?:\/\/[^\s<]+)/g;
+    return escaped.replace(urlPattern, (url) => {
+      // rimuove punteggiatura finale eventualmente catturata per errore
+      const trailingMatch = url.match(/[.,;:!?)]+$/);
+      const trailing = trailingMatch ? trailingMatch[0] : '';
+      const cleanUrl = trailing ? url.slice(0, -trailing.length) : url;
+      return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer">${cleanUrl}</a>${trailing}`;
+    });
   }
 
   document.getElementById('addCategoryBtn').addEventListener('click', () => {
